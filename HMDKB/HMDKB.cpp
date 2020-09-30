@@ -1,4 +1,4 @@
-﻿//HMDKB v1.00 by chocotaiyaki
+﻿//HMDKB v1.1.0 by chocotaiyaki
 //
 
 #include <windows.h>
@@ -86,7 +86,7 @@ DWORD WINAPI ThreadProc(_In_ LPVOID lpParameter) {
                 click_flag_1 = 0;
             }
         }
-        Sleep(1);
+         Sleep(1);
     }
     ExitThread(0);
 }
@@ -218,9 +218,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             SetTimer(hWnd, 1, 1, NULL); 
             Param.bFlag = TRUE;//スレッド起動
             hThread = CreateThread(NULL, 0, ThreadProc, (LPVOID)&Param, 0, NULL);
-            SetWindowKey(hWnd, key_tmp);
             UpdateKey(hWnd, key_tmp, key_location);
-            SetWindowKey(hWnd, key_tmp);
+            AutoKBMove(hWnd, key_tmp);
             return 0;
         }
     case WM_PAINT:
@@ -256,7 +255,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
                 key_location = 0;
                 key_tmp = ChangeKey(key_number);
-                SetWindowKey(hWnd, key_tmp);
+                SetKBSize(hWnd, key_tmp);
+                AutoKBMove(hWnd, key_tmp);
                 UpdateKey(hWnd, key_tmp, key_location);
             }
             else if (pushButton(XINPUT_GAMEPAD_LEFT_SHOULDER, now_pad, before_pad) == true) {
@@ -266,7 +266,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
                 key_location = 0;
                 key_tmp = ChangeKey(key_number);
-                SetWindowKey(hWnd, key_tmp);
+                SetKBSize(hWnd, key_tmp);
+                AutoKBMove(hWnd, key_tmp);
                 UpdateKey(hWnd, key_tmp, key_location);
             }
             else if (pushButton(XINPUT_GAMEPAD_START, now_pad, before_pad) == true) {

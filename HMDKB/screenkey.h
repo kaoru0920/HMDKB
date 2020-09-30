@@ -27,6 +27,11 @@ struct keyb_t {
     int imemode;
 };
 
+struct n2d_t{
+    LONG x;
+    LONG y;
+};
+
 //キー配置
 static keyb_t US_L = { "US_L",L"1234567890QWERTYUIOPASDFGHJKL@ZXCVBNM:;!",10,4,
     {{{'1'},{0},1},{{'2'},{0},1},{{'3'},{0},1},{{'4'},{0},1},{{'5'},{0},1},{{'6'},{0},1},{{'7'},{0},1},{{'8'},{0},1},{{'9'},{0},1},{{'0'},{0},1},
@@ -164,20 +169,67 @@ void UpdateKey(HWND hWnd, keyb_t key_type, int key_location) {
     return;
 }
 
-// ウインドウサイズの設定
-static VOID FuncSetClientSize(HWND hWnd, LONG sx, LONG sy)
-{
-    RECT rc1;
-    RECT rc2;
-
-    GetWindowRect(hWnd, &rc1);
-    GetClientRect(hWnd, &rc2);
-    sx += ((rc1.right - rc1.left) - (rc2.right - rc2.left));
-    sy += ((rc1.bottom - rc1.top) - (rc2.bottom - rc2.top));
-    SetWindowPos(hWnd, NULL, 0, 0, sx, sy, (SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOMOVE));
+n2d_t GetDisplaySize(HWND hWnd) {
+    HDC hDC = GetDC(hWnd);
+    n2d_t data;
+    data.x = GetDeviceCaps(hDC, HORZRES);
+    data.y = GetDeviceCaps(hDC, VERTRES);
+    ReleaseDC(hWnd, hDC);
+    return data;
 }
 
-//ウィンドウサイズをキーボードに合わせる
-void SetWindowKey(HWND hWnd, keyb_t key_type) {
-    FuncSetClientSize(hWnd, (height + allowance_y) * key_type.horizontal - 10, (width + allowance_x) * key_type.vertical - 10);
+n2d_t GetwDisplaySize() {
+    RECT rc;
+    n2d_t data;
+    SystemParametersInfo(SPI_GETWORKAREA, 0, &rc, 0);
+    data.x = rc.right;
+    data.y = rc.bottom;
+    return data;
+}
+
+n2d_t CalcKBSize(HWND hWnd, keyb_t key_type) {
+    n2d_t data;
+    LONG sx, sy;
+    RECT rc1, rc2;
+    GetWindowRect(hWnd, &rc1);
+    GetClientRect(hWnd, &rc2);
+    sx = (height + allowance_y) * key_type.horizontal - 10;
+    sy = (width + allowance_x) * key_type.vertical - 10;
+    sx += ((rc1.right - rc1.left) - (rc2.right - rc2.left));
+    sy += ((rc1.bottom - rc1.top) - (rc2.bottom - rc2.top));
+    data.x = sx;
+    data.y = sy;
+    return data;
+}
+
+n2d_t CalcKBPosition(HWND hWnd,keyb_t key_type) {
+    n2d_t data = GetDisplaySize(hWnd);
+    n2d_t key = CalcKBSize(hWnd, key_type);
+    int sx = data.x;
+    int sy = data.y;
+    return data;
+}
+
+//ウィンドウのサイズ調整
+void SetKBSize(HWND hWnd, keyb_t key_type) {
+    n2d_t data = CalcKBSize(hWnd, key_type);
+    SetWindowPos(hWnd, NULL, 0, 0, data.x, data.y, (SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOMOVE));
+    return;
+}
+
+//ウィンドウの位置を移動
+void SetKBPosition(HWND hWnd,keyb_t key_type,int mx,int my) {
+    n2d_t data=CalcKBSize(hWnd,key_type);
+    MoveWindow(hWnd, mx, my, data.x,data.y, TRUE);
+    return;
+}
+
+//自動位置調整
+void AutoKBMove(HWND hWnd,keyb_t key_type) {
+    n2d_t display=GetwDisplaySize();
+    n2d_t window=CalcKBSize(hWnd,key_type);
+    int x = (display.x / 2) - (window.x / 2);
+    int y = display.y - window.y;
+    SetKBPosition(hWnd, key_type, x, y);
+    return;
 }

@@ -1,4 +1,4 @@
-﻿//HMDKB v1.1.0 by chocotaiyaki
+﻿//HMDKB v1.2.0 by chocotaiyaki
 //
 
 #include <windows.h>
@@ -20,6 +20,7 @@ HANDLE hThread;
 
 //スレッド用データ
 typedef struct _PARAM {
+    HWND    hWnd;
     BOOL    bFlag;
 } PARAM, * LPPARAM;
 
@@ -29,64 +30,134 @@ PARAM Param;
 DWORD WINAPI ThreadProc(_In_ LPVOID lpParameter) {
 
     POINT cursor;
-    bool click_flag_0;
-    bool click_flag_1;
-    bool windowsize_flag;
-    
-    click_flag_0 = false;
-    click_flag_1 = false;
-    windowsize_flag = false;
+    UINT  uState;
+    HMENU hMenu;
+    MENUITEMINFO menuInfo;
+    XINPUT_STATE now_pad, before_pad;
+    int RStick_Speed=0;
+    int LStick_Speed=0;
+    bool click_flag_0=false;
+    bool click_flag_1=false;
+    bool windowsize_flag=false;
+    bool switchTrigger = false;
+
+    HWND hWnd = ((LPPARAM)lpParameter)->hWnd;
+    hMenu = GetMenu(hWnd);
+    menuInfo.cbSize = sizeof(MENUITEMINFO);
+    menuInfo.fState = MFS_UNCHECKED;
+
+    ZeroMemory(&now_pad, sizeof(XINPUT_STATE));
+    ZeroMemory(&before_pad, sizeof(XINPUT_STATE));
 
     while (((LPPARAM)lpParameter)->bFlag) {
         before_pad = now_pad;
         updatePad(&now_pad);
-        if (checkLStick(now_pad) == true) {
-            stick2d now_lstick = numLStick(now_pad);
-            GetCursorPos(&cursor);
-            if (checkButton(XINPUT_GAMEPAD_LEFT_THUMB, now_pad)) {
-                cursor.x = cursor.x + (now_lstick.horizontal) / 700;
-                cursor.y = cursor.y - (now_lstick.vertical) / 700;
-            }
-            else {
-                cursor.x = cursor.x + (now_lstick.horizontal) / 3000;
-                cursor.y = cursor.y - (now_lstick.vertical) / 3000;
-            }
-            SetCursorPos(cursor.x, cursor.y);
+        uState = GetMenuState(hMenu, IDM_LStickL, MF_BYCOMMAND);
+        if (uState & MFS_CHECKED) {
+            LStick_Speed = 600;
         }
-        if (pushRTrigger(50,now_pad,before_pad)==true) {
-            if (click_flag_0 == 0) {
-                mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
-                click_flag_0 = 1;
+        uState = GetMenuState(hMenu, IDM_LStickM, MF_BYCOMMAND);
+        if (uState & MFS_CHECKED) {
+            LStick_Speed = 1200;
+        }
+        uState = GetMenuState(hMenu, IDM_LStickS, MF_BYCOMMAND);
+        if (uState & MFS_CHECKED) {
+            LStick_Speed = 2400;
+        }
+        uState = GetMenuState(hMenu, IDM_RStickL, MF_BYCOMMAND);
+        if (uState & MFS_CHECKED) {
+            RStick_Speed = 500;
+        }
+        uState = GetMenuState(hMenu, IDM_RStickM, MF_BYCOMMAND);
+        if (uState & MFS_CHECKED) {
+            RStick_Speed = 1000;
+        }
+        uState = GetMenuState(hMenu, IDM_RStickS, MF_BYCOMMAND);
+        if (uState & MFS_CHECKED) {
+            RStick_Speed = 2000;
+        }
+        uState = GetMenuState(hMenu, IDM_SWTG, MF_BYCOMMAND);
+        if (uState & MFS_CHECKED) {
+            switchTrigger = true;
+        }
+        else {
+            switchTrigger = false;
+        }
+        if (switchTrigger==false) {
+            if (pushRTrigger(50, now_pad, before_pad) == true) {
+                if (click_flag_0 == 0) {
+                    mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+                    click_flag_0 = 1;
+                }
+            }
+            else if (checkRTrigger(50, now_pad) == false) {
+                if (click_flag_0 == 1) {
+                    mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+                    click_flag_0 = 0;
+                }
+            }
+            if (pushLTrigger(50, now_pad, before_pad) == true) {
+                if (click_flag_1 == 0) {
+                    mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0);
+                    click_flag_1 = 1;
+                }
+            }
+            else if (checkLTrigger(50, now_pad) == false) {
+                if (click_flag_1 == 1) {
+                    mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0);
+                    click_flag_1 = 0;
+                }
             }
         }
-        else if (checkRTrigger(50,now_pad)==false) {
-            if (click_flag_0 == 1) {
-                mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
-                click_flag_0 = 0;
+        else {
+            if (pushButton(XINPUT_GAMEPAD_RIGHT_SHOULDER, now_pad, before_pad) == true) {
+                if (click_flag_0 == 0) {
+                    mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+                    click_flag_0 = 1;
+                }
+            }
+            else if (checkButton(XINPUT_GAMEPAD_RIGHT_SHOULDER, now_pad) == false) {
+                if (click_flag_0 == 1) {
+                    mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+                    click_flag_0 = 0;
+                }
+            }
+            if (pushButton(XINPUT_GAMEPAD_LEFT_SHOULDER, now_pad, before_pad) == true) {
+                if (click_flag_1 == 0) {
+                    mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0);
+                    click_flag_1 = 1;
+                }
+            }
+            else if (checkButton(XINPUT_GAMEPAD_LEFT_SHOULDER, now_pad) == false) {
+                if (click_flag_1 == 1) {
+                    mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0);
+                    click_flag_1 = 0;
+                }
             }
         }
         if (checkRStick(now_pad) == true) {
             stick2d now_rstick = numRStick(now_pad);
             if (checkButton(XINPUT_GAMEPAD_RIGHT_THUMB, now_pad)) {
-                moveWheel((now_rstick.vertical) / 500);
+                moveWheel((now_rstick.vertical) / RStick_Speed);
             }
             else {
-                moveWheel((now_rstick.vertical) / 1000);
+                moveWheel((now_rstick.vertical) / (RStick_Speed * 2));
             }
         }
-        if (pushLTrigger(50, now_pad, before_pad) == true) {
-            if (click_flag_1 == 0) {
-                mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0);
-                click_flag_1 = 1;
+        if (checkLStick(now_pad) == true) {
+            stick2d now_lstick = numLStick(now_pad);
+            GetCursorPos(&cursor);
+            if (checkButton(XINPUT_GAMEPAD_LEFT_THUMB, now_pad)) {
+                cursor.x = cursor.x + (now_lstick.horizontal) / LStick_Speed;
+                cursor.y = cursor.y - (now_lstick.vertical) / LStick_Speed;
             }
-        }
-        else if (checkLTrigger(50, now_pad) == false) {
-            if (click_flag_1 == 1) {
-                mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0);
-                click_flag_1 = 0;
+            else {
+                cursor.x = cursor.x + (now_lstick.horizontal) / (LStick_Speed*2);
+                cursor.y = cursor.y - (now_lstick.vertical) / (LStick_Speed*2);
             }
+            SetCursorPos(cursor.x, cursor.y);
         }
-         Sleep(1);
+        Sleep(5);
     }
     ExitThread(0);
 }
@@ -202,9 +273,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HDC hDC;
     PAINTSTRUCT ps;
+    static HMENU hMenu;
+    static MENUITEMINFO menuInfo;
+    UINT uState;
+    static XINPUT_STATE now_pad;
+    static XINPUT_STATE before_pad;
     static keyb_t key_tmp;
     static int key_location = 0;
     static int key_number = 0;
+    static bool switchTrigger=false;
 
     switch (message)
     {
@@ -213,12 +290,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             key_location = 0;
             key_number = 0;
             key_tmp = US_S;
+            hMenu=GetMenu(hWnd);
+            menuInfo.cbSize = sizeof(MENUITEMINFO);
+            menuInfo.fState = MFS_UNCHECKED;
+            ZeroMemory(&now_pad, sizeof(XINPUT_STATE));
+            ZeroMemory(&before_pad, sizeof(XINPUT_STATE));
+            CheckMenuRadioItem(hMenu, IDM_RStickL, IDM_RStickS,IDM_RStickM, MF_BYCOMMAND);
+            CheckMenuRadioItem(hMenu, IDM_LStickL, IDM_LStickS,IDM_LStickM, MF_BYCOMMAND);
             initButton(now_pad, before_pad);//Pad初期化
             SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, (SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW));
             SetTimer(hWnd, 1, 1, NULL); 
+            Param.hWnd = hWnd;
             Param.bFlag = TRUE;//スレッド起動
             hThread = CreateThread(NULL, 0, ThreadProc, (LPVOID)&Param, 0, NULL);
-            UpdateKey(hWnd, key_tmp, key_location);
+            InvalidateRect(hWnd, NULL, FALSE);
             AutoKBMove(hWnd, key_tmp);
             return 0;
         }
@@ -231,6 +316,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
     case WM_TIMER:
         {
+            before_pad = now_pad;
+            updatePad(&now_pad);
             if (pushButton(XINPUT_GAMEPAD_A, now_pad, before_pad) == true) {
                 KeyAction_Set(key_tmp.vtukey[key_location]);
             }
@@ -248,28 +335,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     ShowWindow(hWnd, SW_MINIMIZE);
                 }
             }
-            else if (pushButton(XINPUT_GAMEPAD_RIGHT_SHOULDER, now_pad, before_pad) == true) {
-                key_number++;
-                if (key_number > 3) {
-                    key_number = 0;
-                }
-                key_location = 0;
-                key_tmp = ChangeKey(key_number);
-                SetKBSize(hWnd, key_tmp);
-                AutoKBMove(hWnd, key_tmp);
-                UpdateKey(hWnd, key_tmp, key_location);
-            }
-            else if (pushButton(XINPUT_GAMEPAD_LEFT_SHOULDER, now_pad, before_pad) == true) {
-                key_number--;
-                if (key_number < 0) {
-                    key_number = 3;
-                }
-                key_location = 0;
-                key_tmp = ChangeKey(key_number);
-                SetKBSize(hWnd, key_tmp);
-                AutoKBMove(hWnd, key_tmp);
-                UpdateKey(hWnd, key_tmp, key_location);
-            }
+            
             else if (pushButton(XINPUT_GAMEPAD_START, now_pad, before_pad) == true) {
                 KeyAction(VK_RETURN, 0);
             }
@@ -278,19 +344,67 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             else if (pushButton(XINPUT_GAMEPAD_DPAD_LEFT, now_pad, before_pad) == true) {
                 key_location = MoveCursor(3, key_tmp, key_location);
-                UpdateKey(hWnd, key_tmp, key_location);
+                InvalidateRect(hWnd, NULL, FALSE);
             }
             else if (pushButton(XINPUT_GAMEPAD_DPAD_RIGHT, now_pad, before_pad) == true) {
                 key_location = MoveCursor(1, key_tmp, key_location);
-                UpdateKey(hWnd, key_tmp, key_location);
+                InvalidateRect(hWnd, NULL, FALSE);
             }
             else if (pushButton(XINPUT_GAMEPAD_DPAD_UP, now_pad, before_pad) == true) {
                 key_location = MoveCursor(0, key_tmp, key_location);
-                UpdateKey(hWnd, key_tmp, key_location);
+                InvalidateRect(hWnd, NULL, FALSE);
             }
             else if (pushButton(XINPUT_GAMEPAD_DPAD_DOWN, now_pad, before_pad) == true) {
                 key_location = MoveCursor(2, key_tmp, key_location);
-                UpdateKey(hWnd, key_tmp, key_location);
+                InvalidateRect(hWnd, NULL, FALSE);
+            }
+            if (switchTrigger==true) {
+                if (pushRTrigger(50, now_pad, before_pad) == true) {
+                    key_number++;
+                    if (key_number > 3) {
+                        key_number = 0;
+                    }
+                    key_location = 0;
+                    key_tmp = ChangeKey(key_number);
+                    SetKBSize(hWnd, key_tmp);
+                    AutoKBMove(hWnd, key_tmp);
+                    InvalidateRect(hWnd, NULL, FALSE);
+                }
+                else if (pushLTrigger(50, now_pad, before_pad) == true) {
+                    key_number--;
+                    if (key_number < 0) {
+                        key_number = 3;
+                    }
+                    key_location = 0;
+                    key_tmp = ChangeKey(key_number);
+                    SetKBSize(hWnd, key_tmp);
+                    AutoKBMove(hWnd, key_tmp);
+                    InvalidateRect(hWnd, NULL, FALSE);
+                }
+            }
+            else {
+                if (pushButton(XINPUT_GAMEPAD_RIGHT_SHOULDER, now_pad, before_pad) == true) {
+                key_number++;
+                if (key_number > 3) {
+                    key_number = 0;
+                }
+                key_location = 0;
+                key_tmp = ChangeKey(key_number);
+                SetKBSize(hWnd, key_tmp);
+                AutoKBMove(hWnd, key_tmp);
+                InvalidateRect(hWnd, NULL, FALSE);
+            }
+                else if (pushButton(XINPUT_GAMEPAD_LEFT_SHOULDER, now_pad, before_pad) == true) {
+                    key_number--;
+                    if (key_number < 0) {
+                        key_number = 3;
+                    }
+                    key_location = 0;
+                    key_tmp = ChangeKey(key_number);
+                    SetKBSize(hWnd, key_tmp);
+                    AutoKBMove(hWnd, key_tmp);
+                    InvalidateRect(hWnd, NULL, FALSE);
+                }
             }
         }
     case WM_COMMAND:
@@ -304,6 +418,29 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             case IDM_EXIT:
                 DestroyWindow(hWnd);
+                break;
+            case IDM_RStickS:
+            case IDM_RStickM:
+            case IDM_RStickL:
+                CheckMenuRadioItem(hMenu, IDM_RStickL,IDM_RStickS,LOWORD(wParam), MF_BYCOMMAND);
+                break;
+            case IDM_LStickS:
+            case IDM_LStickM:
+            case IDM_LStickL:
+                CheckMenuRadioItem(hMenu, IDM_LStickL, IDM_LStickS, LOWORD(wParam), MF_BYCOMMAND);
+                break;
+            case IDM_SWTG:
+                uState = GetMenuState(hMenu, IDM_SWTG, MF_BYCOMMAND);
+                if (uState & MFS_CHECKED) {
+                    //チェックされてたからチェックはずす
+                    CheckMenuItem(hMenu, IDM_SWTG, MF_BYCOMMAND | MFS_UNCHECKED);
+                    switchTrigger = false;
+                }
+                else {
+                    //チェックされてなかったからチェックする
+                    CheckMenuItem(hMenu, IDM_SWTG, MF_BYCOMMAND | MFS_CHECKED);
+                    switchTrigger = true;
+                }
                 break;
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);

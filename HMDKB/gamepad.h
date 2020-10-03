@@ -25,7 +25,7 @@ struct stick2d{
 };
 
 //ボタンの状態を保持
-XINPUT_STATE now_pad, before_pad;
+//XINPUT_STATE now_pad, before_pad;
 
 //初期化
 void initButton(XINPUT_STATE now_state, XINPUT_STATE before_state) {
@@ -34,8 +34,7 @@ void initButton(XINPUT_STATE now_state, XINPUT_STATE before_state) {
 }
 
 //ゲームパッドの状態を更新
-void updatePad(XINPUT_STATE* state) {
-    before_pad = now_pad;
+void updatePad(XINPUT_STATE *state) {
     XInputGetState(
         0,       // DWORD         dwUserIndex
         state); // XINPUT_STATE* pState

@@ -19,13 +19,11 @@
 #define XINPUT_GAMEPAD_X                0x4000
 #define XINPUT_GAMEPAD_Y                0x8000
 
+//縦横データ
 struct stick2d{
     int horizontal;
     int vertical;
 };
-
-//ボタンの状態を保持
-//XINPUT_STATE now_pad, before_pad;
 
 //初期化
 void initButton(XINPUT_STATE now_state, XINPUT_STATE before_state) {
@@ -34,9 +32,9 @@ void initButton(XINPUT_STATE now_state, XINPUT_STATE before_state) {
 }
 
 //ゲームパッドの状態を更新
-void updatePad(XINPUT_STATE *state) {
+void updatePad(XINPUT_STATE *state,int controller) {
     XInputGetState(
-        0,       // DWORD         dwUserIndex
+        controller,       // DWORD         dwUserIndex
         state); // XINPUT_STATE* pState
 }
 
@@ -78,6 +76,7 @@ bool checkButton(int button_id, XINPUT_STATE now_state) {
     return false;
 }
 
+//デッドゾーン
 XINPUT_STATE checkDeadzone(XINPUT_STATE now_state) {
     if ((now_state.Gamepad.sThumbLX <  XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE &&
         now_state.Gamepad.sThumbLX > -XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE) &&
@@ -98,6 +97,7 @@ XINPUT_STATE checkDeadzone(XINPUT_STATE now_state) {
     return now_state;
 }
 
+//縦横データ生成
 stick2d numRStick(XINPUT_STATE now_state) {
     stick2d now_stick;
     now_state = checkDeadzone(now_state);
@@ -106,6 +106,7 @@ stick2d numRStick(XINPUT_STATE now_state) {
     return now_stick;
 }
 
+//縦横データ生成
 stick2d numLStick(XINPUT_STATE now_state) {
     stick2d now_stick;
     now_state = checkDeadzone(now_state);
@@ -114,6 +115,7 @@ stick2d numLStick(XINPUT_STATE now_state) {
     return now_stick;
 }
 
+//動かしているかチェック
 bool checkRStick(XINPUT_STATE now_state) {
     now_state = checkDeadzone(now_state);
     if (now_state.Gamepad.sThumbRX == 0 && now_state.Gamepad.sThumbRY == 0) {
@@ -122,6 +124,7 @@ bool checkRStick(XINPUT_STATE now_state) {
     return true;
 }
 
+//動かしているかチェック
 bool checkLStick(XINPUT_STATE now_state) {
     now_state = checkDeadzone(now_state);
     if (now_state.Gamepad.sThumbLX == 0 && now_state.Gamepad.sThumbLY == 0) {
@@ -130,6 +133,7 @@ bool checkLStick(XINPUT_STATE now_state) {
     return true;
 }
 
+//離した瞬間
 bool releaseRTrigger(int num, XINPUT_STATE now_state, XINPUT_STATE before_state) {
     if (before_state.Gamepad.bRightTrigger >= num) {
         if (now_state.Gamepad.bRightTrigger < num) {
@@ -167,6 +171,7 @@ bool checkRTrigger(int num, XINPUT_STATE now_state) {
     return false;
 }
 
+//離した瞬間
 bool releaseLTrigger(int num, XINPUT_STATE now_state, XINPUT_STATE before_state) {
     if (before_state.Gamepad.bLeftTrigger >= num) {
         if (now_state.Gamepad.bLeftTrigger < num) {
